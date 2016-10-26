@@ -45,10 +45,10 @@ func staticPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // Chat room page.
-func roomPage(ctx stack.Context) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		room := ctx["room"].(*Room)
-		ctx := map[string]interface{}{
+func roomPage(ctx *stack.Context, w http.ResponseWriter, r *http.Request) {
+	//return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		room := ctx.Get("room").(*Room)
+		ctx2 := map[string]interface{}{
 			"Room":  room,
 			"Page":  "room",
 			"Title": "Join #" + room.Id,
@@ -59,8 +59,8 @@ func roomPage(ctx stack.Context) http.Handler {
 		w.Header().Set("Pragma", "no-cache")
 		w.Header().Set("Expires", "0")
 
-		respond(w, templates["room"], ctx, http.StatusOK)
-	})
+		respond(w, templates["room"], ctx2, http.StatusOK)
+	//})
 }
 
 // Validate a room creation request and create the roon.
@@ -100,9 +100,9 @@ func createRoom(w http.ResponseWriter, r *http.Request) {
 }
 
 // Dispose a room.
-func disposeRoom(ctx stack.Context) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		room := ctx["room"].(*Room)
+func disposeRoom(ctx *stack.Context, w http.ResponseWriter, r *http.Request) {
+	//return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		room := ctx.Get("room").(*Room)
 
 		clearSessions(room)
 		room.stop <- 0
@@ -111,13 +111,13 @@ func disposeRoom(ctx stack.Context) http.Handler {
 			Message string `json:"message"`
 		}{"Room disposed"}
 		respondJSON(w, "", response, http.StatusOK)
-	})
+	//})
 }
 
 // Log a peer into the room after password validation.
-func login(ctx stack.Context) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		room := ctx["room"].(*Room)
+func login(ctx *stack.Context, w http.ResponseWriter, r *http.Request)  {
+	//return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		room := ctx.Get("room").(*Room)
 
 		// Too many?
 		if room.peerCount() >= config.MaxPeersPerRoom {
@@ -166,19 +166,19 @@ func login(ctx stack.Context) http.Handler {
 		}
 
 		respondJSON(w, "Incorrect login", nil, http.StatusForbidden)
-	})
+	//})
 }
 
 // Websocket connection request handler.
-func webSocketHandler(ctx stack.Context) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func webSocketHandler(ctx *stack.Context, w http.ResponseWriter, r *http.Request) {
+	//return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			Logger.Println("405 Method not allowed:", r.RemoteAddr, r.Method)
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
-		room := ctx["room"].(*Room)
+		room := ctx.Get("room").(*Room)
 
 		// Peers exceeded?
 		if room.peerCount() >= config.MaxPeersPerRoom {
@@ -232,13 +232,13 @@ func webSocketHandler(ctx stack.Context) http.Handler {
 
 		// Start listener.
 		peer.listen()
-	})
+	//})
 }
 
 // Middleware.
 // HTTP room handler (middleware) to validate all room requests.
 // Attempt to get the room from 1) memory 2) the DB, if not found, fail with a 404.
-func hasRoom(ctx stack.Context, next http.Handler) http.Handler {
+func hasRoom(ctx *stack.Context, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (
 			room *Room
@@ -266,14 +266,14 @@ func hasRoom(ctx stack.Context, next http.Handler) http.Handler {
 		}
 
 		// Context for chained middleware.
-		ctx["room"] = room
+		ctx.Put("room",room)
 
 		next.ServeHTTP(w, r)
 	})
 }
 
 // Authenticate an http request (with cookies).
-func hasAuth(ctx stack.Context, next http.Handler) http.Handler {
+func hasAuth(ctx *stack.Context, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		valid := false
 
@@ -282,8 +282,8 @@ func hasAuth(ctx stack.Context, next http.Handler) http.Handler {
 		// Check if it's a registered token.
 		if cookie != nil {
 			token := cookie.Value
-			if token != "" && validateSessionToken(ctx["room"].(*Room), token) {
-				ctx["token"] = token
+			if token != "" && validateSessionToken(ctx.Get("room").(*Room), token) {
+				ctx.Put("token",token)
 				valid = true
 			}
 		}

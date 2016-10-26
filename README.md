@@ -1,3 +1,9 @@
+This project fork form   github.com/goniltalk/niltalk  changed some function for new stack version  support
+
+Passed by
+Go 1.7.1
+
+
 # Niltalk
 http://niltalk.com
 
