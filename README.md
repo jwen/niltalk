@@ -1,4 +1,4 @@
-This project fork form   github.com/goniltalk/niltalk  changed some function for new stack version  support
+This project forked form   github.com/goniltalk/niltalk  some function changed (roomPage disposeRoom login webSocketHandler) for new stack version  support
 
 Passed by
 Go 1.7.1
